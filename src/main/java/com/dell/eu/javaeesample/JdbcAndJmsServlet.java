@@ -22,8 +22,6 @@ public class JdbcAndJmsServlet extends HttpServlet {
     // Set up all the default values
 
     private static final String JMS_CONNECTION_FACTORY = "RemoteConnectionFactory";
-    private static final String JMS_DESTINATION = "queue/test";
-    private static final String JMS_MESSAGE = "Hello, JMS!";
     private static final int JMS_MESSAGE_COUNT = 1;
 
     @Override
@@ -58,9 +56,6 @@ public class JdbcAndJmsServlet extends HttpServlet {
         ConnectionFactory connectionFactory = null;
         Connection connection = null;
         Session session = null;
-        MessageProducer producer = null;
-        MessageConsumer consumer = null;
-        Destination destination = null;
         TextMessage message = null;
         Context context = null;
 
@@ -68,33 +63,46 @@ public class JdbcAndJmsServlet extends HttpServlet {
             context = new InitialContext();
 
             // Perform the JNDI lookups
-            logger.info("Attempting to acquire connection factory \"" + JMS_CONNECTION_FACTORY + "\"");
             connectionFactory = (ConnectionFactory) context.lookup(JMS_CONNECTION_FACTORY);
-            logger.info("Found connection factory \"" + JMS_CONNECTION_FACTORY + "\" in JNDI");
+            logger.info("Found connection factory " + JMS_CONNECTION_FACTORY + " in JNDI");
 
-            String destinationString = System.getProperty("destination", JMS_DESTINATION);
-            logger.info("Attempting to acquire destination \"" + destinationString + "\"");
-            destination = (Destination) context.lookup(destinationString);
-            logger.info("Found destination \"" + destinationString + "\" in JNDI");
-
-            // Create the JMS connection, session, producer, and consumer
+            // Create the JMS connection, session, queueProducer, and queueConsumer
             connection = connectionFactory.createConnection();
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-            producer = session.createProducer(destination);
-            consumer = session.createConsumer(destination);
+
+            Queue queue = (Queue) context.lookup("queue/test");
+            MessageProducer queueProducer = session.createProducer(queue);
+            MessageConsumer queueConsumer = session.createConsumer(queue);
+
+            Topic topic = (Topic) context.lookup("topic/test");
+            MessageProducer topicProducer = session.createProducer(topic);
+            MessageConsumer topicConsumer = session.createConsumer(topic);
+
             connection.start();
 
-            logger.info("Sending " + JMS_MESSAGE_COUNT + " messages with content: " + JMS_MESSAGE);
+            logger.info("Sending  messages...");
 
             // Send the specified number of messages
             for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = session.createTextMessage(JMS_MESSAGE);
-                producer.send(message);
+                message = session.createTextMessage("This is a queue message");
+                queueProducer.send(message);
             }
 
             // Then receive the same number of messages that were sent
             for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = (TextMessage) consumer.receive(5000);
+                message = (TextMessage) queueConsumer.receive(5000);
+                logger.info("Received message with content " + message.getText());
+            }
+
+            // Send the specified number of messages
+            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
+                message = session.createTextMessage("This is a topic message.");
+                topicProducer.send(message);
+            }
+
+            // Then receive the same number of messages that were sent
+            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
+                message = (TextMessage) topicConsumer.receive(5000);
                 logger.info("Received message with content " + message.getText());
             }
 
