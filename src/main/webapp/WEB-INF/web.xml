@@ -7,13 +7,31 @@
     <display-name>Java EE Sample App</display-name>
 
     <servlet>
-        <servlet-name>JdbcAndJmsServlet</servlet-name>
+        <servlet-name>JdbcAndJmsQueueServlet</servlet-name>
         <servlet-class>com.dell.eu.javaeesample.JdbcAndJmsServlet</servlet-class>
+        <init-param>
+            <param-name>jmsdestination</param-name>
+            <param-value>queue/test</param-value>
+        </init-param>
     </servlet>
 
     <servlet-mapping>
-        <servlet-name>JdbcAndJmsServlet</servlet-name>
-        <url-pattern>/jdbcandjms</url-pattern>
+        <servlet-name>JdbcAndJmsQueueServlet</servlet-name>
+        <url-pattern>/jdbcandjmsqueue</url-pattern>
+    </servlet-mapping>
+
+    <servlet>
+        <servlet-name>JdbcAndJmsTopicServlet</servlet-name>
+        <servlet-class>com.dell.eu.javaeesample.JdbcAndJmsServlet</servlet-class>
+        <init-param>
+            <param-name>jmsdestination</param-name>
+            <param-value>topic/test</param-value>
+        </init-param>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>JdbcAndJmsTopicServlet</servlet-name>
+        <url-pattern>/jdbcandjmstopic</url-pattern>
     </servlet-mapping>
 
 </web-app>

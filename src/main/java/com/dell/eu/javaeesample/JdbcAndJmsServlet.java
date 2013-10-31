@@ -28,7 +28,9 @@ public class JdbcAndJmsServlet extends HttpServlet {
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         try {
             jdbc(resp);
-            jms(resp);
+            String messagesCountParam = req.getParameter("messagesCount");
+            int messagesCount = messagesCountParam == null ? JMS_MESSAGE_COUNT : Integer.valueOf(messagesCountParam);
+            jms(resp, getServletConfig().getInitParameter("jmsdestination"), messagesCount);
         } catch (Exception e) {
             throw new ServletException(e);
         }
@@ -52,7 +54,7 @@ public class JdbcAndJmsServlet extends HttpServlet {
         }
     }
 
-    private void jms(HttpServletResponse resp) throws Exception {
+    private void jms(HttpServletResponse resp, String destinationName, int messagesCount) throws Exception {
         ConnectionFactory connectionFactory = null;
         Connection connection = null;
         Session session = null;
@@ -66,47 +68,32 @@ public class JdbcAndJmsServlet extends HttpServlet {
             connectionFactory = (ConnectionFactory) context.lookup(JMS_CONNECTION_FACTORY);
             logger.info("Found connection factory " + JMS_CONNECTION_FACTORY + " in JNDI");
 
-            // Create the JMS connection, session, queueProducer, and queueConsumer
+            // Create the JMS connection, session, producer, and consumer
             connection = connectionFactory.createConnection();
             session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-            Queue queue = (Queue) context.lookup("queue/test");
-            MessageProducer queueProducer = session.createProducer(queue);
-            MessageConsumer queueConsumer = session.createConsumer(queue);
-
-            Topic topic = (Topic) context.lookup("topic/test");
-            MessageProducer topicProducer = session.createProducer(topic);
-            MessageConsumer topicConsumer = session.createConsumer(topic);
+            Destination destination = (Destination) context.lookup(destinationName);
+            logger.info("Found destination " + destinationName + " in JNDI");
+            MessageProducer producer = session.createProducer(destination);
+            MessageConsumer consumer = session.createConsumer(destination);
 
             connection.start();
 
             logger.info("Sending  messages...");
 
             // Send the specified number of messages
-            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = session.createTextMessage("This is a queue message");
-                queueProducer.send(message);
+            for (int i = 0; i < messagesCount; i++) {
+                message = session.createTextMessage("Message to be sent to " + destinationName);
+                producer.send(message);
             }
 
             // Then receive the same number of messages that were sent
-            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = (TextMessage) queueConsumer.receive(5000);
+            for (int i = 0; i < messagesCount; i++) {
+                message = (TextMessage) consumer.receive(5000);
                 logger.info("Received message with content " + message.getText());
             }
 
-            // Send the specified number of messages
-            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = session.createTextMessage("This is a topic message.");
-                topicProducer.send(message);
-            }
-
-            // Then receive the same number of messages that were sent
-            for (int i = 0; i < JMS_MESSAGE_COUNT; i++) {
-                message = (TextMessage) topicConsumer.receive(5000);
-                logger.info("Received message with content " + message.getText());
-            }
-
-            resp.getWriter().println("Sent and received jms message.");
+            resp.getWriter().println("Sent and received jms message within destination " + destinationName);
         } catch (Exception e) {
             logger.severe(e.getMessage());
             throw e;
