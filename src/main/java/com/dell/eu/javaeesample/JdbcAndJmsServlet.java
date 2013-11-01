@@ -87,13 +87,7 @@ public class JdbcAndJmsServlet extends HttpServlet {
                 producer.send(message);
             }
 
-            // Then receive the same number of messages that were sent
-            for (int i = 0; i < messagesCount; i++) {
-                message = (TextMessage) consumer.receive(5000);
-                logger.info("Received message with content " + message.getText());
-            }
-
-            resp.getWriter().println("Sent and received jms message within destination " + destinationName);
+            resp.getWriter().println("Sent jms message within destination " + destinationName);
         } catch (Exception e) {
             logger.severe(e.getMessage());
             throw e;
