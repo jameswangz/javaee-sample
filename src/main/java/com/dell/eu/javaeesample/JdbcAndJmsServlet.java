@@ -75,7 +75,6 @@ public class JdbcAndJmsServlet extends HttpServlet {
             Destination destination = (Destination) context.lookup(destinationName);
             logger.info("Found destination " + destinationName + " in JNDI");
             MessageProducer producer = session.createProducer(destination);
-            MessageConsumer consumer = session.createConsumer(destination);
 
             connection.start();
 
