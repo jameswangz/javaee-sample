@@ -83,7 +83,11 @@ public class JdbcAndJmsServlet extends HttpServlet {
             // Send the specified number of messages
             for (int i = 0; i < messagesCount; i++) {
                 message = session.createTextMessage("Message to be sent to " + destinationName);
-                producer.send(message);
+                if (producer instanceof TopicPublisher) {
+                    ((TopicPublisher) producer).publish(message);
+                } else {
+                    producer.send(message);
+                }
             }
 
             resp.getWriter().println("Sent jms message within destination " + destinationName);
